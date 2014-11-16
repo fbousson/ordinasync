@@ -1,8 +1,11 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light">
+        <!-- customize the color palette -->
+        <item name="colorPrimary">@color/ordina_orange</item>
+        <item name="colorPrimaryDark">@color/ordina_orange_dark</item>
+        <item name="colorAccent">@color/ordina_contrast</item>
     </style>
 
 </resources>

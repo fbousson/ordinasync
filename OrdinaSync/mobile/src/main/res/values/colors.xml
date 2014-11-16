@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color
+        name="ordina_orange"
+        >#FF9933</color>
+
+    <color
+        name="ordina_orange_dark"
+        >#803300</color>
+
+    <color
+        name="ordina_contrast"
+        >#0000FF</color>
+
+</resources>
