@@ -14,15 +14,21 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import be.ordina.firebase.ordinasync.application.OrdinaSync;
+import be.ordina.firebase.ordinasync.domain.Message;
 
 /**
  * Created by fbousson on 16/11/14.
@@ -41,7 +47,8 @@ public class StoreOverview extends ActionBarActivity {
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
-    private Firebase firebase;
+    private Firebase _firebase;
+    private List<Message> _list = new ArrayList<Message>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +73,34 @@ public class StoreOverview extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "removing all items");
+                _firebase.removeValue(new Firebase.CompletionListener() {
+                    @Override
+                    public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+                        String message = firebaseError == null ? getString(R.string.data_removed_success) : getString(R.string.data_removed_failure)+ " " + firebaseError;
+                        Toast.makeText(StoreOverview.this, message, Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+
+        final EditText editText = (EditText) findViewById(R.id.activity_store_overview_firebase_item_edittext);
+
+
+        Button addButton = (Button) findViewById(R.id.activity_store_overview_add_button);
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String text = editText.getText().toString();
+                Log.d(TAG, "Adding firebase item " + text);
+                Firebase newPostRef = _firebase.push();
+                newPostRef.setValue(text, new Firebase.CompletionListener() {
+                    @Override
+                    public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+                        editText.setText("");
+                        String message = firebaseError == null ? getString(R.string.data_saved_success) : getString(R.string.data_saved_failure) + " " + firebaseError.getMessage();
+                        Toast.makeText(StoreOverview.this, message, Toast.LENGTH_LONG).show();
+                    }
+                });
             }
         });
 
@@ -77,7 +112,28 @@ public class StoreOverview extends ActionBarActivity {
 
         if(fireBaseActive){
             getSupportActionBar().setTitle(firebaseStoreName);
-            firebase = OrdinaSync.getInstance().getFireBaseStore().getChileFireBaseRef(firebaseStoreName);
+            _firebase = OrdinaSync.getInstance().getFireBaseStore().getChileFireBaseRef(firebaseStoreName);
+            //TODO fbousson should be replaced by addChildEventListener for more finegrained item manipulation..
+            _firebase.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    Map<String, String> values = (Map) dataSnapshot.getValue();
+                    Log.d(TAG, "Data changed " + values);
+                    _list.clear();
+                    if(values != null){
+                        for(Map.Entry<String, String> entry:  values.entrySet()){
+                            _list.add(new Message(entry.getKey(), entry.getValue()));
+                        }
+                    }
+
+                    mAdapter.notifyDataSetChanged();
+                }
+
+                @Override
+                public void onCancelled(FirebaseError firebaseError) {
+                    Log.e(TAG, firebaseError.toString());
+                }
+            });
         }
     }
 
@@ -89,18 +145,13 @@ public class StoreOverview extends ActionBarActivity {
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         // specify an adapter (see also next example)
-        List<String> list = new ArrayList<String>();
-        for(int i = 0; i <= 100; i++){
-            list.add("" + i);
-        }
-
-        mAdapter = new MyAdapter(list);
+        mAdapter = new MyAdapter(_list);
         mRecyclerView.setAdapter(mAdapter);
     }
 
 
     static class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
-        private List mDataset;
+        private List<Message> mDataset;
 
         // Provide a reference to the views for each data item
         // Complex data items may need more than one view per item, and
@@ -115,7 +166,7 @@ public class StoreOverview extends ActionBarActivity {
         }
 
         // Provide a suitable constructor (depends on the kind of dataset)
-        public MyAdapter(List myDataset) {
+        public MyAdapter(List<Message> myDataset) {
             mDataset = myDataset;
         }
 
@@ -136,7 +187,7 @@ public class StoreOverview extends ActionBarActivity {
         public void onBindViewHolder(ViewHolder holder, int position) {
             // - get element from your dataset at this position
             // - replace the contents of the view with that element
-            String text = mDataset.get(position).toString();
+            String text = mDataset.get(position).getText();
             holder.mTextView.setText(text);
 
         }

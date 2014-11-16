@@ -17,4 +17,11 @@
     <string name="activity_store_overview_toggle_airplane_mode">Toggle Airplane Mode</string>
     <string name="store_overview_remote_all_button">Remove All Items</string>
 
+    <string name="data_saved_success">Data saved successfully.</string>
+    <string name="data_saved_failure">Data could not be saved.</string>
+
+    <string name="data_removed_success">Data removed succesfully</string>
+    <string name="data_removed_failure">Data could not be removedy</string>
+    <string name="store_overview_empty_list">No items available</string>
+
 </resources>
