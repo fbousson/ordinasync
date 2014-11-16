@@ -15,5 +15,6 @@
     <string name="store_overview_no_firebase_ref">No firebase Store Ref</string>
     <string name="activity_store_overview_title">Overview</string>
     <string name="activity_store_overview_toggle_airplane_mode">Toggle Airplane Mode</string>
+    <string name="store_overview_remote_all_button">Remove All Items</string>
 
 </resources>
