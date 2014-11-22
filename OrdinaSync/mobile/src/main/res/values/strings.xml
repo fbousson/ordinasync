@@ -27,5 +27,6 @@
     <string name="activity_detailview_delete_button_text">Delete item</string>
     <string name="detailview">Detail view</string>
     <string name="no_message_passed">No message passed</string>
+    <string name="detailview_removed_item_success">Item removed.</string>
 
 </resources>

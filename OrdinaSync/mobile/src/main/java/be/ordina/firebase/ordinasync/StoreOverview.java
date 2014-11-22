@@ -26,6 +26,7 @@ import com.firebase.client.ValueEventListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +42,8 @@ public class StoreOverview extends ActionBarActivity {
     private static String TAG = StoreOverview.class.getSimpleName();
 
     public static final String STORE_OVERVIEW_STORE_REF_NAME = "OrdinaSync_storeOverviewRefName";
+
+    private static final int DETAIL_VIEW_REQUEST = 1;
 
     private View _noFirebase;
     private View _firebaseActive;
@@ -68,7 +71,8 @@ public class StoreOverview extends ActionBarActivity {
                     Intent intent = new Intent(StoreOverview.this, DetailView.class);
                     intent.putExtra(DetailView.DETAILVIEW_MESSAGE, item);
                     intent.putExtra(DetailView.DETAILVIEW_FIREBASE, _firebase.getKey());
-                    startActivity(intent);
+
+                    startActivityForResult(intent, DETAIL_VIEW_REQUEST);
 
             }
         };
@@ -96,7 +100,7 @@ public class StoreOverview extends ActionBarActivity {
                     @Override
                     public void onComplete(FirebaseError firebaseError, Firebase firebase) {
                         String message = firebaseError == null ? getString(R.string.data_removed_success) : getString(R.string.data_removed_failure)+ " " + firebaseError;
-                        Toast.makeText(StoreOverview.this, message, Toast.LENGTH_LONG).show();
+                        Toast.makeText(StoreOverview.this, message, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -136,7 +140,13 @@ public class StoreOverview extends ActionBarActivity {
             _firebase.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    Map<String, String> values = (Map) dataSnapshot.getValue();
+                    Map<String, String> values = new HashMap<String, String>();
+                    if(dataSnapshot.getValue() instanceof  String){
+                        values.put(dataSnapshot.getKey(), (String) dataSnapshot.getValue());
+                    }else{
+                         values = (Map) dataSnapshot.getValue();
+                    }
+
                     Log.d(TAG, "Data changed " + values);
                     _list.clear();
                     if(values != null){
