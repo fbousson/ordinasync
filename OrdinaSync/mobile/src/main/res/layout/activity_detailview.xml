@@ -14,6 +14,10 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/activity_detailview_edit_text"/>
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" android:id="@+id/activity_detailview_update_button" android:text="@string/activity_detailview_update_button_text" />
     
 
 

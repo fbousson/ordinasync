@@ -28,5 +28,11 @@
     <string name="detailview">Detail view</string>
     <string name="no_message_passed">No message passed</string>
     <string name="detailview_removed_item_success">Item removed.</string>
+    <string name="threeway_merge_info">Please pick the value you wish to use</string>
+    <string name="threeway_merge_pick_server">Pick Server</string>
+    <string name="threeway_merge_pick_local">Pick local</string>
+    <string name="threeway_merge_pick_original">Pick original</string>
+    <string name="conflict">Conflict</string>
+    <string name="activity_detailview_update_button_text">update</string>
 
 </resources>

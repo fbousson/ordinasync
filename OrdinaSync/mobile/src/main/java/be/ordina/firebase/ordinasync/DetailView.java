@@ -24,7 +24,7 @@ import be.ordina.firebase.ordinasync.domain.Message;
 /**
  * Created by fbousson on 18/11/14.
  */
-public class DetailView extends ActionBarActivity {
+public class DetailView extends ActionBarActivity  {
 
     private static String TAG = DetailView.class.getSimpleName();
 
@@ -34,13 +34,15 @@ public class DetailView extends ActionBarActivity {
 
     private Message _message;
 
-    private String _textBeforeChange;
+    private String _originalText;
 
 
     public static final String DETAILVIEW_MESSAGE = "detailview_message";
     public static final String DETAILVIEW_FIREBASE = "detailview_firebase";
 
     public static final int DELETE_SUCCESS = 1;
+
+    private static final int PICK_VALUE_REQUEST = 2;
 
 
     @Override
@@ -53,67 +55,9 @@ public class DetailView extends ActionBarActivity {
 
         _itemFirebase = _firebase.child(_message.getKey());
 
+        _originalText = _message.getText();
+
         final EditText editText = (EditText) findViewById(R.id.activity_detailview_edit_text);
-        editText.addTextChangedListener(new TextWatcher() {
-
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                _textBeforeChange = s.toString();
-                Log.d(TAG, "Text before change: " + _textBeforeChange);
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
-                final String text = s.toString();
-
-                _itemFirebase.runTransaction(new Transaction.Handler() {
-                    @Override
-                    public Transaction.Result doTransaction(MutableData currentData) {
-
-                        String serverValue = (String) currentData.getValue();
-
-                        if(serverValue == null) {
-                            currentData.setValue(text);
-                        } else {
-                            Log.d(TAG,"Server value " + serverValue + " local value before change" + _textBeforeChange + " changing to " + text);
-
-                           if(!serverValue.equals(_textBeforeChange)){
-                               //show popup with both values
-                               return Transaction.abort();
-                           }else{
-                               currentData.setValue(text);
-                           }
-
-                        }
-                        return Transaction.success(currentData); //we can also abort by calling Transaction.abort()
-
-
-                    }
-
-                    @Override
-                    public void onComplete(FirebaseError firebaseError, boolean committed, DataSnapshot dataSnapshot) {
-                        Log.d(TAG, "Committed " + committed);
-                        if(!committed){
-                            Toast.makeText(DetailView.this, "Not commited", Toast.LENGTH_SHORT).show();
-                        }
-                        if(firebaseError != null){
-                            toastFirebaseError(firebaseError);
-                        }else{
-                            Log.d(TAG, "Value after transaction: " + dataSnapshot.getValue());
-                        }
-
-                    }
-                });
-
-            }
-        });
 
 
         //might want to populate the field with the firebase valued instead of the other value.
@@ -132,29 +76,100 @@ public class DetailView extends ActionBarActivity {
         });
 
 
-        Button deleteButton = (Button) findViewById(R.id.activity_detailview_delete_button);
-        deleteButton.setOnClickListener(new View.OnClickListener() {
+        Button updateButton = (Button)findViewById(R.id.activity_detailview_update_button);
+        updateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                _itemFirebase.removeValue(new Firebase.CompletionListener() {
-                    @Override
-                    public void onComplete(FirebaseError firebaseError, Firebase firebase) {
-
-                        if(firebaseError != null){
-                            toastFirebaseError(firebaseError);
-                        }else{
-                            Toast.makeText(DetailView.this, getString(R.string.detailview_removed_item_success), Toast.LENGTH_LONG).show();
-                            finishActivity(DELETE_SUCCESS);
-                        }
-
-                    }
-                });
-
+                updateItem(editText.getText().toString());
             }
         });
 
 
+        Button deleteButton = (Button) findViewById(R.id.activity_detailview_delete_button);
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteItem();
 
+            }
+        });
+
+    }
+
+    private void updateItem(final String localText) {
+
+        _itemFirebase.runTransaction(new Transaction.Handler() {
+            @Override
+            public Transaction.Result doTransaction(MutableData currentData) {
+
+                String serverValue = (String) currentData.getValue();
+
+                if(serverValue == null) {
+                    currentData.setValue(localText);
+                } else {
+                    Log.d(TAG, "Server value " + serverValue + " local value before change" + _originalText + " changing to " + localText);
+
+                    if(!serverValue.equals(_originalText)){
+                        //show popup with both values
+                        return Transaction.abort();
+                    }else{
+                        currentData.setValue(localText);
+                    }
+
+                }
+
+
+                Intent intent = new Intent(DetailView.this, ThreeWayMerge.class);
+                intent.putExtra(ThreeWayMerge.SERVER_VALUE, serverValue);
+                intent.putExtra(ThreeWayMerge.LOCAL_VALUE, localText);
+                intent.putExtra(ThreeWayMerge.ORIGINAL_VALUE, _originalText);
+                startActivityForResult(intent, PICK_VALUE_REQUEST);
+
+                return Transaction.success(currentData); //we can also abort by calling Transaction.abort()
+
+
+            }
+
+            @Override
+            public void onComplete(FirebaseError firebaseError, boolean committed, DataSnapshot dataSnapshot) {
+                Log.d(TAG, "Committed " + committed);
+                if(!committed){
+                    Toast.makeText(DetailView.this, "Not commited", Toast.LENGTH_SHORT).show();
+                }
+                if(firebaseError != null){
+                    toastFirebaseError(firebaseError);
+                }else{
+                    Log.d(TAG, "Value after transaction: " + dataSnapshot.getValue());
+                }
+
+            }
+        });
+    }
+
+    private void deleteItem() {
+        _itemFirebase.removeValue(new Firebase.CompletionListener() {
+            @Override
+            public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+
+                if(firebaseError != null){
+                    toastFirebaseError(firebaseError);
+                }else{
+                    Toast.makeText(DetailView.this, getString(R.string.detailview_removed_item_success), Toast.LENGTH_LONG).show();
+                    finishActivity(DELETE_SUCCESS);
+                }
+
+            }
+        });
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode,
+                                    Intent data) {
+        if (requestCode == PICK_VALUE_REQUEST) {
+            if (resultCode == RESULT_OK) {
+               //A value was passed. Read the data, update field
+               Log.d(TAG, "Pick value request OK" + data);
+            }
+        }
     }
 
     private void toastFirebaseError(FirebaseError firebaseError) {
@@ -187,4 +202,6 @@ public class DetailView extends ActionBarActivity {
 
         return message;
     }
+
+
 }
