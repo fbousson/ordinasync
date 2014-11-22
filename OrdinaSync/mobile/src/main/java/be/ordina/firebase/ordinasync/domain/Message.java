@@ -1,9 +1,11 @@
 package be.ordina.firebase.ordinasync.domain;
 
+import java.io.Serializable;
+
 /**
  * Created by fbousson on 16/11/14.
  */
-public class Message {
+public class Message implements Serializable{
 
     private final String key, text;
 

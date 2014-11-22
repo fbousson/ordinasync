@@ -23,5 +23,9 @@
     <string name="data_removed_success">Data removed succesfully</string>
     <string name="data_removed_failure">Data could not be removedy</string>
     <string name="store_overview_empty_list">No items available</string>
+    <string name="activity_detailview_explanation">Everytime you type an updated version is sent to the server.</string>
+    <string name="activity_detailview_delete_button_text">Delete item</string>
+    <string name="detailview">Detail view</string>
+    <string name="no_message_passed">No message passed</string>
 
 </resources>

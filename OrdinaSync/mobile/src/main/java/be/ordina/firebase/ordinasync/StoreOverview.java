@@ -24,6 +24,8 @@ import com.firebase.client.FirebaseError;
 import com.firebase.client.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -50,10 +52,27 @@ public class StoreOverview extends ActionBarActivity {
     private Firebase _firebase;
     private List<Message> _list = new ArrayList<Message>();
 
+    private View.OnClickListener _onClickListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_store_overview);
+
+        _onClickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                    int itemPosition = mRecyclerView.getChildPosition(view);
+                    Message item = _list.get(itemPosition);
+                    Log.d(TAG, "Selected item " + item);
+                    Intent intent = new Intent(StoreOverview.this, DetailView.class);
+                    intent.putExtra(DetailView.DETAILVIEW_MESSAGE, item);
+                    intent.putExtra(DetailView.DETAILVIEW_FIREBASE, _firebase.getKey());
+                    startActivity(intent);
+
+            }
+        };
+
         String firebaseStoreName =getFireBaseStoreName(getIntent().getExtras());
 
         _noFirebase = findViewById(R.id.activity_store_overview_no_firebase);
@@ -126,6 +145,13 @@ public class StoreOverview extends ActionBarActivity {
                         }
                     }
 
+                    Collections.sort(_list, new Comparator<Message>() {
+                        @Override
+                        public int compare(Message lhs, Message rhs) {
+                            return lhs.getText().compareTo(rhs.getText());
+                        }
+                    });
+
                     mAdapter.notifyDataSetChanged();
                 }
 
@@ -147,21 +173,27 @@ public class StoreOverview extends ActionBarActivity {
         // specify an adapter (see also next example)
         mAdapter = new MyAdapter(_list);
         mRecyclerView.setAdapter(mAdapter);
+
+
     }
 
 
-    static class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
+
+
+
+    class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
         private List<Message> mDataset;
 
         // Provide a reference to the views for each data item
         // Complex data items may need more than one view per item, and
         // you provide access to all the views for a data item in a view holder
-        public static class ViewHolder extends RecyclerView.ViewHolder {
+        public class ViewHolder extends RecyclerView.ViewHolder {
             // each data item is just a string in this case
             public TextView mTextView;
-            public ViewHolder(View v) {
-                super(v);
-                mTextView = (TextView) v.findViewById(R.id.recyclerview_firebaseitem_text);
+            public ViewHolder(View view) {
+                super(view);
+                view.setOnClickListener(_onClickListener);
+                mTextView = (TextView) view.findViewById(R.id.recyclerview_firebaseitem_text);
             }
         }
 

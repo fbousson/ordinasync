@@ -28,6 +28,8 @@
 
         </activity>
 
+        <activity android:name=".DetailView" android:label="@string/detailview"/>
+
     </application>
 
 </manifest>
