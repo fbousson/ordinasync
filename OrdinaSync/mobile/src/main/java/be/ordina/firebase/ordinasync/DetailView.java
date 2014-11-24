@@ -3,8 +3,6 @@ package be.ordina.firebase.ordinasync;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -35,6 +33,8 @@ public class DetailView extends ActionBarActivity  {
     private Message _message;
 
     private String _originalText;
+    private String _localValue;
+    private String _serverValue;
 
 
     public static final String DETAILVIEW_MESSAGE = "detailview_message";
@@ -52,21 +52,34 @@ public class DetailView extends ActionBarActivity  {
 
         _message = getMessage(getIntent());
         _firebase = getFirebase(getIntent());
-
         _itemFirebase = _firebase.child(_message.getKey());
 
         _originalText = _message.getText();
+        _localValue = _originalText;
+
 
         final EditText editText = (EditText) findViewById(R.id.activity_detailview_edit_text);
+        final Button mergeButton = (Button) findViewById(R.id.activity_detailview_merge_button);
+        mergeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startThreeWayMerge(_serverValue, editText.getText().toString(), _originalText);
+            }
+        });
 
 
         //might want to populate the field with the firebase valued instead of the other value.
         _itemFirebase.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                String value = (String) dataSnapshot.getValue();
-                editText.setText(value);
-
+                _serverValue = (String) dataSnapshot.getValue();
+                if(_localValue.equals(_serverValue)){
+                    editText.setText(_serverValue);
+                }else{
+                    //Notify user that there is a merge conflict
+                    Toast.makeText(DetailView.this, getString(R.string.activity_detailview_merge_conflict), Toast.LENGTH_SHORT).show();
+                    mergeButton.setVisibility(View.VISIBLE);
+                }
             }
 
             @Override
@@ -98,36 +111,28 @@ public class DetailView extends ActionBarActivity  {
 
     private void updateItem(final String localText) {
 
+        _localValue = localText;
+
         _itemFirebase.runTransaction(new Transaction.Handler() {
             @Override
             public Transaction.Result doTransaction(MutableData currentData) {
 
-                String serverValue = (String) currentData.getValue();
+                _serverValue = (String) currentData.getValue();
 
-                if(serverValue == null) {
+                if(_serverValue == null) {
                     currentData.setValue(localText);
                 } else {
-                    Log.d(TAG, "Server value " + serverValue + " local value before change" + _originalText + " changing to " + localText);
+                    Log.d(TAG, "Server value " + _serverValue + " local value before change" + _originalText + " changing to " + localText);
 
-                    if(!serverValue.equals(_originalText)){
+                    if(!_serverValue.equals(_originalText)){
                         //show popup with both values
+                        startThreeWayMerge(_serverValue, localText, _originalText);
                         return Transaction.abort();
                     }else{
                         currentData.setValue(localText);
                     }
-
                 }
-
-
-                Intent intent = new Intent(DetailView.this, ThreeWayMerge.class);
-                intent.putExtra(ThreeWayMerge.SERVER_VALUE, serverValue);
-                intent.putExtra(ThreeWayMerge.LOCAL_VALUE, localText);
-                intent.putExtra(ThreeWayMerge.ORIGINAL_VALUE, _originalText);
-                startActivityForResult(intent, PICK_VALUE_REQUEST);
-
                 return Transaction.success(currentData); //we can also abort by calling Transaction.abort()
-
-
             }
 
             @Override
@@ -142,8 +147,23 @@ public class DetailView extends ActionBarActivity  {
                     Log.d(TAG, "Value after transaction: " + dataSnapshot.getValue());
                 }
 
+                if(committed && firebaseError == null){
+                    _originalText = (String) dataSnapshot.getValue();
+                    Log.d(TAG, "Sync success. Updating original value: " + _originalText );
+
+                }
+
             }
         });
+    }
+
+    private void startThreeWayMerge(String serverValue, String localText, String originalText) {
+        Log.d(TAG, "Starting 3 way merge");
+        Intent intent = new Intent(this, ThreeWayMerge.class);
+        intent.putExtra(ThreeWayMerge.SERVER_VALUE, serverValue);
+        intent.putExtra(ThreeWayMerge.LOCAL_VALUE, localText);
+        intent.putExtra(ThreeWayMerge.ORIGINAL_VALUE, originalText);
+        startActivityForResult(intent, PICK_VALUE_REQUEST);
     }
 
     private void deleteItem() {

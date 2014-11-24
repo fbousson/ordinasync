@@ -34,5 +34,7 @@
     <string name="threeway_merge_pick_original">Pick original</string>
     <string name="conflict">Conflict</string>
     <string name="activity_detailview_update_button_text">update</string>
+    <string name="activity_detailview_merge_conflict">Merge conflict detected</string>
+    <string name="activity_detailview_merge_button_text">Resolve conflict</string>
 
 </resources>
