@@ -45,6 +45,9 @@ public class DetailView extends ActionBarActivity  {
     private static final int PICK_VALUE_REQUEST = 2;
 
 
+    private ValueEventListener _valueEventListener;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,6 +56,8 @@ public class DetailView extends ActionBarActivity  {
         _message = getMessage(getIntent());
         _firebase = getFirebase(getIntent());
         _itemFirebase = _firebase.child(_message.getKey());
+
+
 
         _originalText = _message.getText();
         _localValue = _originalText;
@@ -68,25 +73,7 @@ public class DetailView extends ActionBarActivity  {
         });
 
 
-        //might want to populate the field with the firebase valued instead of the other value.
-        _itemFirebase.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                _serverValue = (String) dataSnapshot.getValue();
-                if(_localValue.equals(_serverValue)){
-                    editText.setText(_serverValue);
-                }else{
-                    //Notify user that there is a merge conflict
-                    Toast.makeText(DetailView.this, getString(R.string.activity_detailview_merge_conflict), Toast.LENGTH_SHORT).show();
-                    mergeButton.setVisibility(View.VISIBLE);
-                }
-            }
 
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
-                Log.w(TAG, "Firebase error onCancelled" + firebaseError);
-            }
-        });
 
 
         Button updateButton = (Button)findViewById(R.id.activity_detailview_update_button);
@@ -107,6 +94,39 @@ public class DetailView extends ActionBarActivity  {
             }
         });
 
+
+        _valueEventListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                _serverValue = (String) dataSnapshot.getValue();
+                if(_localValue.equals(_serverValue)){
+                    editText.setText(_serverValue);
+                }else{
+                    //Notify user that there is a merge conflict
+                    Toast.makeText(DetailView.this, getString(R.string.activity_detailview_merge_conflict), Toast.LENGTH_SHORT).show();
+                    mergeButton.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                Log.w(TAG, "Firebase error onCancelled" + firebaseError);
+            }
+        };
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //might want to populate the field with the firebase valued instead of the other value.
+        _itemFirebase.addValueEventListener(_valueEventListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        _itemFirebase.removeEventListener(_valueEventListener);
     }
 
     private void updateItem(final String localText) {

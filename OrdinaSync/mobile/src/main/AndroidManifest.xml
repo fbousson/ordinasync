@@ -24,7 +24,7 @@
         </activity>
 
 
-        <activity android:name=".StoreOverview"  android:label="@string/activity_store_overview_title">
+        <activity android:name=".StoreOverview" android:windowSoftInputMode="stateHidden"  android:label="@string/activity_store_overview_title">
 
         </activity>
 

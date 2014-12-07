@@ -57,10 +57,48 @@ public class StoreOverview extends ActionBarActivity {
 
     private View.OnClickListener _onClickListener;
 
+
+    private ValueEventListener _valueEventListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_store_overview);
+
+
+        _valueEventListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Map<String, String> values = new HashMap<String, String>();
+                if(dataSnapshot.getValue() instanceof  String){
+                    values.put(dataSnapshot.getKey(), (String) dataSnapshot.getValue());
+                }else{
+                    values = (Map) dataSnapshot.getValue();
+                }
+
+                Log.d(TAG, "Data changed " + values);
+                _list.clear();
+                if(values != null){
+                    for(Map.Entry<String, String> entry:  values.entrySet()){
+                        _list.add(new Message(entry.getKey(), entry.getValue()));
+                    }
+                }
+
+                Collections.sort(_list, new Comparator<Message>() {
+                    @Override
+                    public int compare(Message lhs, Message rhs) {
+                        return lhs.getText().compareTo(rhs.getText());
+                    }
+                });
+
+                mAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                Log.e(TAG, firebaseError.toString());
+            }
+        };
 
         _onClickListener = new View.OnClickListener() {
             @Override
@@ -77,7 +115,7 @@ public class StoreOverview extends ActionBarActivity {
             }
         };
 
-        String firebaseStoreName =getFireBaseStoreName(getIntent().getExtras());
+
 
         _noFirebase = findViewById(R.id.activity_store_overview_no_firebase);
         _firebaseActive = findViewById(R.id.activity_store_overview_firebase_active);
@@ -130,6 +168,14 @@ public class StoreOverview extends ActionBarActivity {
 
         initRecyclerView();
 
+
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String firebaseStoreName = getFireBaseStoreName(getIntent().getExtras());
         boolean fireBaseActive = firebaseStoreName != null;
         fireBaseActiveView(fireBaseActive);
 
@@ -137,39 +183,16 @@ public class StoreOverview extends ActionBarActivity {
             getSupportActionBar().setTitle(firebaseStoreName);
             _firebase = OrdinaSync.getInstance().getFireBaseStore().getChileFireBaseRef(firebaseStoreName);
             //TODO fbousson should be replaced by addChildEventListener for more finegrained item manipulation..
-            _firebase.addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    Map<String, String> values = new HashMap<String, String>();
-                    if(dataSnapshot.getValue() instanceof  String){
-                        values.put(dataSnapshot.getKey(), (String) dataSnapshot.getValue());
-                    }else{
-                         values = (Map) dataSnapshot.getValue();
-                    }
+            _firebase.addValueEventListener(_valueEventListener);
+        }
+    }
 
-                    Log.d(TAG, "Data changed " + values);
-                    _list.clear();
-                    if(values != null){
-                        for(Map.Entry<String, String> entry:  values.entrySet()){
-                            _list.add(new Message(entry.getKey(), entry.getValue()));
-                        }
-                    }
 
-                    Collections.sort(_list, new Comparator<Message>() {
-                        @Override
-                        public int compare(Message lhs, Message rhs) {
-                            return lhs.getText().compareTo(rhs.getText());
-                        }
-                    });
-
-                    mAdapter.notifyDataSetChanged();
-                }
-
-                @Override
-                public void onCancelled(FirebaseError firebaseError) {
-                    Log.e(TAG, firebaseError.toString());
-                }
-            });
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(_firebase != null){
+            _firebase.removeEventListener(_valueEventListener);
         }
     }
 

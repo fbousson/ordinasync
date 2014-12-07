@@ -14,7 +14,6 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="@string/default_store_child_ref"
         android:id="@+id/activity_store_choice_store_ref_name"/>
 
 
