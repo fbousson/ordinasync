@@ -32,6 +32,7 @@ import java.util.Map;
 
 import be.ordina.firebase.ordinasync.application.OrdinaSync;
 import be.ordina.firebase.ordinasync.domain.Message;
+import be.ordina.firebase.ordinasync.util.FirebaseUtil;
 
 /**
  * Created by fbousson on 16/11/14.
@@ -108,8 +109,8 @@ public class StoreOverview extends ActionBarActivity {
                     Log.d(TAG, "Selected item " + item);
                     Intent intent = new Intent(StoreOverview.this, DetailView.class);
                     intent.putExtra(DetailView.DETAILVIEW_MESSAGE, item);
-                    intent.putExtra(DetailView.DETAILVIEW_FIREBASE, _firebase.getKey());
-
+                    intent.putExtra(FirebaseUtil.EXTRA_FIREBASE_REF, _firebase.getKey());
+                    intent.putExtra(FirebaseUtil.EXTRA_FIREBASE_ITEM_REF, item.getKey());
                     startActivityForResult(intent, DETAIL_VIEW_REQUEST);
 
             }

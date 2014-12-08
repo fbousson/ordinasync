@@ -4,11 +4,10 @@ package be.ordina.firebase.ordinasync;
  * Created by fbousson on 22/11/14.
  */
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -23,7 +22,10 @@ public class ThreeWayMerge extends ActionBarActivity {
     public static final String LOCAL_VALUE= "threewaymerge_localvalue";
     public static final String ORIGINAL_VALUE ="threewaymerge_originalvalue";
 
+    public static final String EXTRA_RESULT = "extra_threewaymerge_result";
+    public static final String EXTRA_MERGE_SERVER_VALUE = "extra_threewaymerge_servervalue";
 
+    private String _serverValueAtMergeTime;
 
 
     @Override
@@ -34,7 +36,8 @@ public class ThreeWayMerge extends ActionBarActivity {
         Bundle bundle = getIntent().getExtras();
 
         final EditText serverEditText = (EditText) findViewById(R.id.threeway_merge_server_edit);
-        serverEditText.setText(bundle.getString(SERVER_VALUE));
+        _serverValueAtMergeTime = bundle.getString(SERVER_VALUE);
+        serverEditText.setText(_serverValueAtMergeTime);
         Button pickServerButton = (Button) findViewById(R.id.threeway_merge_pick_server);
         pickServerButton.setOnClickListener(new SelectionListener(serverEditText));
 
@@ -67,8 +70,12 @@ public class ThreeWayMerge extends ActionBarActivity {
             //getListener().onValueSelected(_editText.getText().toString());
             //return to previous activity with result
             String selectedValue = _editText.getText().toString();
+            Intent intent = new Intent();
+            intent.putExtra(EXTRA_RESULT, selectedValue);
+            intent.putExtra(EXTRA_MERGE_SERVER_VALUE, _serverValueAtMergeTime);
             Toast.makeText(ThreeWayMerge.this, selectedValue, Toast.LENGTH_SHORT).show();
-
+            setResult(RESULT_OK, intent);
+            finish();
         }
     }
 

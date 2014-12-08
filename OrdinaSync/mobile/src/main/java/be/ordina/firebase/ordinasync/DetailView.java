@@ -16,8 +16,8 @@ import com.firebase.client.MutableData;
 import com.firebase.client.Transaction;
 import com.firebase.client.ValueEventListener;
 
-import be.ordina.firebase.ordinasync.application.OrdinaSync;
 import be.ordina.firebase.ordinasync.domain.Message;
+import be.ordina.firebase.ordinasync.util.FirebaseUtil;
 
 /**
  * Created by fbousson on 18/11/14.
@@ -32,29 +32,41 @@ public class DetailView extends ActionBarActivity  {
 
     private Message _message;
 
+    private EditText _editText;
+
     private String _originalText;
     private String _localValue;
     private String _serverValue;
 
 
     public static final String DETAILVIEW_MESSAGE = "detailview_message";
-    public static final String DETAILVIEW_FIREBASE = "detailview_firebase";
+
 
     public static final int DELETE_SUCCESS = 1;
 
     private static final int PICK_VALUE_REQUEST = 2;
 
+    private String _mergeServerValue;
+
 
     private ValueEventListener _valueEventListener;
 
+    public String getServerValue() {
+        return _serverValue;
+    }
+
+    public void setServerValue(String serverValue) {
+        _serverValue = serverValue;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detailview);
+        _mergeServerValue = null;
 
         _message = getMessage(getIntent());
-        _firebase = getFirebase(getIntent());
+        _firebase = FirebaseUtil.getFirebase(getIntent(), FirebaseUtil.EXTRA_FIREBASE_REF);
         _itemFirebase = _firebase.child(_message.getKey());
 
 
@@ -63,12 +75,12 @@ public class DetailView extends ActionBarActivity  {
         _localValue = _originalText;
 
 
-        final EditText editText = (EditText) findViewById(R.id.activity_detailview_edit_text);
+        _editText = (EditText) findViewById(R.id.activity_detailview_edit_text);
         final Button mergeButton = (Button) findViewById(R.id.activity_detailview_merge_button);
         mergeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startThreeWayMerge(_serverValue, editText.getText().toString(), _originalText);
+                startThreeWayMerge(getServerValue(), _editText.getText().toString(), _originalText);
             }
         });
 
@@ -80,7 +92,7 @@ public class DetailView extends ActionBarActivity  {
         updateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateItem(editText.getText().toString());
+                updateItem(_editText.getText().toString());
             }
         });
 
@@ -98,10 +110,13 @@ public class DetailView extends ActionBarActivity  {
         _valueEventListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                _serverValue = (String) dataSnapshot.getValue();
-                if(_localValue.equals(_serverValue)){
-                    editText.setText(_serverValue);
-                }else{
+                setServerValue((String) dataSnapshot.getValue());
+                if(_localValue.equals(getServerValue())){
+                    _editText.setText(getServerValue());
+                }else if(_mergeServerValue != null){
+                 Log.d(TAG, "Currently merging results. Local server data: " + _mergeServerValue);
+                }
+                else{
                     //Notify user that there is a merge conflict
                     Toast.makeText(DetailView.this, getString(R.string.activity_detailview_merge_conflict), Toast.LENGTH_SHORT).show();
                     mergeButton.setVisibility(View.VISIBLE);
@@ -137,16 +152,22 @@ public class DetailView extends ActionBarActivity  {
             @Override
             public Transaction.Result doTransaction(MutableData currentData) {
 
-                _serverValue = (String) currentData.getValue();
+                //TODO fbousson check if server value has remained stable with old version and if resolve flag has been set.
 
-                if(_serverValue == null) {
+                setServerValue((String) currentData.getValue());
+
+                Log.d(TAG, "Old server value " + _mergeServerValue + " latest server value " + getServerValue());
+
+                if(getServerValue() == null) {
+
                     currentData.setValue(localText);
                 } else {
-                    Log.d(TAG, "Server value " + _serverValue + " local value before change" + _originalText + " changing to " + localText);
-
-                    if(!_serverValue.equals(_originalText)){
+                    Log.d(TAG, "Server value " + getServerValue() + " local value before change" + _originalText + " changing to " + localText);
+                    if(getServerValue().equals(_mergeServerValue)){
+                        currentData.setValue(localText);
+                    }else if(!getServerValue().equals(_originalText)){
                         //show popup with both values
-                        startThreeWayMerge(_serverValue, localText, _originalText);
+                        startThreeWayMerge(getServerValue(), localText, _originalText);
                         return Transaction.abort();
                     }else{
                         currentData.setValue(localText);
@@ -168,8 +189,10 @@ public class DetailView extends ActionBarActivity  {
                 }
 
                 if(committed && firebaseError == null){
+                    _mergeServerValue = null;
                     _originalText = (String) dataSnapshot.getValue();
                     Log.d(TAG, "Sync success. Updating original value: " + _originalText );
+                    finish();
 
                 }
 
@@ -207,7 +230,12 @@ public class DetailView extends ActionBarActivity  {
         if (requestCode == PICK_VALUE_REQUEST) {
             if (resultCode == RESULT_OK) {
                //A value was passed. Read the data, update field
-               Log.d(TAG, "Pick value request OK" + data);
+                Log.d(TAG, "Pick value request OK" + data);
+                String resolvedValue = data.getExtras().getString(ThreeWayMerge.EXTRA_RESULT);
+                _mergeServerValue = data.getExtras().getString(ThreeWayMerge.EXTRA_MERGE_SERVER_VALUE);
+                _localValue = resolvedValue;
+                _editText.setText(resolvedValue);
+                updateItem(resolvedValue);
             }
         }
     }
@@ -216,19 +244,7 @@ public class DetailView extends ActionBarActivity  {
         Toast.makeText(this, firebaseError.toString(), Toast.LENGTH_LONG).show();
     }
 
-    private Firebase getFirebase(Intent intent) {
-        Bundle bundle = intent.getExtras();
-        Firebase firebase = null;
-        if(bundle != null){
-            String firebaseName = (String) bundle.getString(DETAILVIEW_FIREBASE);
-            Log.d(TAG, "Found firebaseName: " + firebaseName);
-            if(firebaseName != null){
-                firebase =  OrdinaSync.getInstance().getFireBaseStore().getChileFireBaseRef(firebaseName);
-            }
-        }
-        Log.d(TAG, "Firebase passed on intent: " + firebase);
-        return firebase;
-    }
+
 
     private Message getMessage(Intent intent) {
 
